@@ -33,7 +33,8 @@ import {
   Clock,
   ArrowRight,
   ArrowLeftRight,
-  CheckCheck
+  CheckCheck,
+  Send
 } from 'lucide-react';
 
 interface DeviceDetailModalProps {
@@ -1086,10 +1087,10 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                 onClose();
                 onOpenAICaption(device);
               }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold shadow-sm shadow-amber-500/20 transition"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 via-emerald-600 to-amber-600 hover:opacity-90 text-white text-xs font-bold shadow-sm shadow-sky-500/20 transition active:scale-95"
             >
-              <Sparkles className="w-4 h-4 fill-white" />
-              <span>ساخت کپشن فروش با هوش مصنوعی</span>
+              <Send className="w-4 h-4 -rotate-12" />
+              <span>ارسال آگهی به پیام‌رسان‌ها (بله • تلگرام • ایتا • واتساپ)</span>
             </button>
 
             <button

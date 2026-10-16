@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Sparkles,
   Sun,
-  Moon
+  Moon,
+  Send
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -27,6 +28,7 @@ interface HeaderProps {
   totalDevicesCount: number;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  onOpenAICaption?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   totalDevicesCount,
   theme,
   onToggleTheme,
+  onOpenAICaption,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-xs w-full max-w-full">
@@ -74,6 +77,16 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Mobile Actions: Add Device + Theme + User (Visible on mobile right next to brand) */}
             <div className="flex items-center gap-1.5 md:hidden shrink-0">
+              {onOpenAICaption && (
+                <button
+                  onClick={onOpenAICaption}
+                  title="ارسال مستقیم آگهی به پیام‌رسان‌ها (بله، تلگرام، ایتا، واتساپ)"
+                  className="w-8 h-8 rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 flex items-center justify-center hover:bg-sky-100 dark:hover:bg-sky-900 active:scale-95 transition-all shadow-2xs"
+                >
+                  <Send className="w-3.5 h-3.5 -rotate-12" />
+                </button>
+              )}
+
               <button
                 onClick={onAddNewDevice}
                 title="ثبت دستگاه جدید"
@@ -167,6 +180,18 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Direct Messenger Share Ad tool */}
+            {onOpenAICaption && (
+              <button
+                onClick={onOpenAICaption}
+                title="ارسال مستقیم آگهی و عکس به پیام‌رسان‌ها (بله، تلگرام، ایتا، واتساپ)"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 text-xs font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-100 hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200"
+              >
+                <Send className="w-3.5 h-3.5 -rotate-12 text-sky-600 dark:text-sky-400" />
+                <span>ارسال به پیام‌رسان‌ها</span>
+              </button>
+            )}
+
             {/* Excel tool */}
             <button
               onClick={onOpenExcelModal}

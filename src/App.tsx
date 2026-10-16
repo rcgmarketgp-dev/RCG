@@ -443,6 +443,10 @@ export default function App() {
         totalDevicesCount={devices.length}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        onOpenAICaption={() => {
+          setAiCaptionDevice(null);
+          setIsAICaptionOpen(true);
+        }}
       />
 
       {/* Main Container */}
@@ -600,6 +604,7 @@ export default function App() {
           setAiCaptionDevice(null);
         }}
         device={aiCaptionDevice}
+        allDevices={devices}
       />
 
       <AIFixSpellModal

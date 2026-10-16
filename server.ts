@@ -24,21 +24,27 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Endpoint: Generate specialized social media captions
+// Endpoint: Generate specialized social media & messenger captions (single or multi-device)
 app.post('/api/ai/generate-caption', async (req: Request, res: Response) => {
   try {
-    const { device, platform = 'instagram', tone = 'attractive', targetAudience = 'general' } = req.body;
+    const { device, devices, platform = 'bale', tone = 'attractive' } = req.body;
 
-    if (!device || !device.name) {
-      return res.status(400).json({ error: 'اطلاعات دستگاه ناقص است.' });
+    const targetList: any[] = Array.isArray(devices) && devices.length > 0
+      ? devices
+      : (device && device.name ? [device] : []);
+
+    if (targetList.length === 0) {
+      return res.status(400).json({ error: 'اطلاعات حداقل یک دستگاه برای ساخت کپشن الزامی است.' });
     }
 
     const platformGuides: Record<string, string> = {
+      bale: 'پیام استاندارد پیام‌رسان بله (Bale) با تیترهای جذاب، ایموجی‌های منظم، تفکیک قیمت و اقساط، راه‌های ارتباطی و خرید مستقیم در پیام‌رسان بله.',
+      telegram: 'پست استاندارد کانال و سوپرگروه تلگرام با فرمت بولد، ساختار منظم، درصد نقد و اقساط، گارانتی، آیدی تلگرام مشاوره و شماره تماس.',
+      eitaa: 'پست یا پیام استاندارد پیام‌رسان ایتا (Eitaa) با فونت خوانا، هشتگ‌های پرمخاطب، شماره تماس و آیدی ایتا جهت سفارش و مشاوره.',
+      whatsapp: 'متن منظم و ساختاریافته برای ارسال در چت شخصی (پیوی) و گروه‌های واتساپ همراه با خلاصه مشخصات فنی و اطلاعات تماس سریع.',
       instagram: 'پست اینستاگرام با قلاب اول (Hook) جذاب، ایموجی‌های صنعتی مرتبط، مشخصات کلیدی به صورت بولت‌پوینت، شرایط پرداخت نقد و اقساط، مدت گارانتی، هشتگ‌های تخصصی پربازدید و دعوت به اقدام (CTA) برای دایرکت و تماس.',
-      telegram: 'پست استاندارد کانال تلگرام با فرمت بولد، ساختار منظم، مشخصات کامل، درصد نقد و اقساط، گارانتی، آیدی مشاوره و شماره تماس به همراه متن دکمه‌های شیشه‌ای.',
-      linkedin: 'پست لینکدین حرفه‌ای و سازمانی B2B، تأکید بر بهره‌وری خط تولید، بازگشت سرمایه (ROI)، استانداردها و شرایط فروش اعتباری و تسهیلاتی برای کارخانجات.',
       divar: 'آگهی مناسب دیوار و شیپور با تیتر روشن، تفکیک شفاف قیمت و پیش‌پرداخت، شرایط چک و اقساط، وضعیت کارکرد و سلامت فنی، و نحوه بازدید حضوری.',
-      whatsapp: 'متن خلاصه و شکیل مناسب ارسال در گروه‌ها و چت‌های واتساپ و ایتا/بله به همراه اطلاعات تماس فوری.',
+      linkedin: 'پست لینکدین حرفه‌ای و سازمانی B2B، تأکید بر بهره‌وری خط تولید، بازگشت سرمایه (ROI)، استانداردها و شرایط فروش اعتباری و تسهیلاتی برای کارخانجات.',
     };
 
     const toneGuides: Record<string, string> = {
@@ -48,30 +54,53 @@ app.post('/api/ai/generate-caption', async (req: Request, res: Response) => {
       formal: 'رسمی، شرکتی، متین و اعتباری برای خریداران حقوقی',
     };
 
+    let itemsDescription = '';
+    if (targetList.length === 1) {
+      const d = targetList[0];
+      itemsDescription = `
+مشخصات دستگاه تک موردی:
+- نام دستگاه: ${d.name}
+- مدل / برند: ${d.model || 'نامشخص'}
+- دسته‌بندی: ${d.category || 'صنایع چوب'}
+- وضعیت فعلی: ${d.status === 'ready_for_sale' ? 'آماده تحویل در نمایشگاه' : d.status === 'under_overhaul' ? 'در حال سرویس و اورهال فنی' : 'فروخته شده'}
+- شرایط پرداخت: ${d.cashPercentage}% نقد + ${d.installmentPercentage}% اقساط${d.installmentMonths ? ` (${d.installmentMonths} ماهه)` : ''}
+- گارانتی: ${d.warrantyMonths ? `${d.warrantyMonths} ماه گارانتی معتبر شرکتی` : 'فاقد گارانتی'}
+- قیمت تقریبی: ${d.price ? `${Number(d.price).toLocaleString('fa-IR')} تومان` : 'تماس بگیرید'}
+- سال ساخت: ${d.year || 'اعلام نشده'}
+- مشخصات فنی: ${d.specsText || JSON.stringify(d.specList || d.specifications || {})}
+- توضیحات تکمیلی: ${d.notes || 'ندارد'}
+`;
+    } else {
+      itemsDescription = `
+لیست چند دستگاه انتخابی جهت آگهی تجمیعی / کاتالوگ فروش گروهی (${targetList.length} دستگاه):
+${targetList.map((d, idx) => `
+دستگاه شماره ${idx + 1}:
+• نام: ${d.name} (مدل: ${d.model || '-'} / دسته: ${d.category || '-'})
+• وضعیت: ${d.status === 'ready_for_sale' ? 'موجود و آماده تحویل' : 'در حال اورهال'}
+• قیمت: ${d.price ? `${Number(d.price).toLocaleString('fa-IR')} تومان` : 'توافقی / استعلام'}
+• شرایط: ${d.cashPercentage}% نقد + ${d.installmentPercentage}% اقساط (${d.installmentMonths || 0} ماه)
+• گارانتی: ${d.warrantyMonths || 0} ماه
+• خلاصه فنی: ${d.specsText ? d.specsText.slice(0, 100) : '-'}
+`).join('\n')}
+`;
+    }
+
     const prompt = `
-شما یک مدیر بازاریابی و فروش ارشد ماشین‌آلات و ابزارآلات صنایع چوب، ام‌دی‌اف، منبت و کابینت‌سازی در ایران هستید.
-لطفاً برای دستگاه ماشین‌ابزار چوب زیر یک متن کپشن/آگهی فروش فوق‌العاده بنویسید:
+شما یک مدیر بازاریابی و فروش ارشد ماشین‌آلات و ابزارآلات صنایع چوب، ام‌دی‌اف، نجاری و کابینت‌سازی در ایران هستید.
+لطفاً برای اطلاعات ماشین‌آلات زیر یک متن آگهی / کپشن فروش فوق‌العاده برای ارسال به مشتری یا انتشار در پیام‌رسان‌های بله، تلگرام، ایتا و واتساپ بنویسید:
 
-مشخصات دستگاه چوب:
-- نام دستگاه: ${device.name}
-- مدل / برند: ${device.model || 'نامشخص'}
-- دسته‌بندی: ${device.category || 'صنایع چوب'}
-- وضعیت فعلی: ${device.status === 'ready_for_sale' ? 'آماده تحویل در نمایشگاه' : device.status === 'under_overhaul' ? 'در حال سرویس و اورهال فنی' : 'فروخته شده'}
-- شرایط پرداخت: ${device.cashPercentage}% نقد + ${device.installmentPercentage}% اقساط${device.installmentMonths ? ` (${device.installmentMonths} ماهه)` : ''}
-- گارانتی: ${device.warrantyMonths ? `${device.warrantyMonths} ماه گارانتی معتبر شرکتی` : 'فاقد گارانتی'}
-- قیمت تقریبی: ${device.price ? `${Number(device.price).toLocaleString('fa-IR')} تومان` : 'تماس بگیرید'}
-- سال ساخت: ${device.year || 'اعلام نشده'}
-- مشخصات فنی: ${device.specsText || JSON.stringify(device.specList || device.specifications || {})}
-- توضیحات تکمیلی: ${device.notes || 'ندارد'}
+${itemsDescription}
 
-پلتفرم مقصد: ${platform} (${platformGuides[platform] || platformGuides.instagram})
+پیام‌رسان / پلتفرم مقصد: ${platform} (${platformGuides[platform] || platformGuides.bale})
 لحن متن: ${tone} (${toneGuides[tone] || toneGuides.attractive})
+حالت آگهی: ${targetList.length > 1 ? 'آگهی کاتالوگ چند موردی (لیست دستگاه‌های موجود با شرایط ویژه اقساطی)' : 'آگهی تکی اختصاصی دستگاه'}
 
 دستورالعمل‌های خروجی:
-۱. خروجی باید کاملاً به زبان فارسی روان و اصیل با اصطلاحات تخصصی دقیق صنعت چوب (مانند ایستگاه‌ها، پیش‌فرز، ریل واگن، خط‌زن، اسپیندل و...) باشد.
-۲. هشتگ‌های تخصصی صنعت چوب مانند #صنایع_چوب #دستگاه_لبه_چسبان #دورکن_واگنی #سی_ان_سی_چوب #ام_دی_اف #کابینت_سازی #فروش_اقساطی درج شود.
-۳. شرایط پرداخت نقد و اقساط و گارانتی به شکل برجسته ذکر شوند.
-۴. فقط خود متن نهایی کپشن را خروجی دهید بدون توضیحات اضافه در اول یا آخر.
+۱. خروجی باید کاملاً به زبان فارسی روان، اصیل و جذاب با اصطلاحات تخصصی دقیق صنعت چوب (مانند ایستگاه‌ها، پیش‌فرز، ریل واگن، خط‌زن، اسپیندل، زاویه‌خور، پی‌ال‌سی و...) باشد.
+۲. شرایط پرداخت نقد و اقساط و مدت گارانتی به شکل برجسته و خوانا با ایموجی‌های منظم ذکر شوند.
+۳. هشتگ‌های تخصصی صنعت چوب مانند #صنایع_چوب #فروش_اقساطی_ماشین_آلات #چوب_و_ام_دی_اف و نام دستگاه‌ها در انتها درج شود.
+۴. بخش دعوت به اقدام (تماس جهت استعلام و بازدید حضوری در کارگاه/نمایشگاه) قرار گیرد.
+۵. فقط خود متن نهایی کپشن را خروجی دهید بدون توضیحات اضافه در ابتدا یا انتها.
 `;
 
     const response = await ai.models.generateContent({

@@ -1,8 +1,9 @@
 import { DeviceItem, AISpellingResult } from '../types/device';
 
 export interface GenerateCaptionParams {
-  device: Partial<DeviceItem>;
-  platform: 'instagram' | 'telegram' | 'linkedin' | 'divar' | 'whatsapp';
+  device?: Partial<DeviceItem>;
+  devices?: Partial<DeviceItem>[];
+  platform: 'bale' | 'telegram' | 'eitaa' | 'whatsapp' | 'instagram' | 'divar' | 'linkedin';
   tone: 'attractive' | 'technical' | 'urgent' | 'formal';
 }
 
