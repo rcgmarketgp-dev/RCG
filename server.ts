@@ -48,6 +48,7 @@ app.post('/api/ai/generate-caption', async (req: Request, res: Response) => {
     };
 
     const toneGuides: Record<string, string> = {
+      corporate_emojis: 'کپشن بسیار جذاب، شرکتی و لوکس همراه با استیکرها و ایموجی‌های منظم و تجاری (🏢 ✨ ⚙️ 📌 💎 🚀 🤝 🏷️ 📞 💰 🏆 💯)، تیترهای کادربندی شده چشم‌نواز، بولت‌پوینت‌های آیکونیک، هایلایت شرایط خرید اقساطی و گارانتی، بسیار مناسب برای کانال‌های تلگرام، ایتا، بله و اینستاگرام',
       attractive: 'لحن بازاریابی حرفه‌ای، هیجان‌انگیز، جذاب و متمایز',
       technical: 'لحن کاملاً فنی، مهندسی و دقیق با تأکید بر قطعات و استانداردها',
       urgent: 'فروش فوری با آفر ویژه، تخفیف محدود و شرایط استثنایی نقدی/اقساطی',
@@ -118,12 +119,22 @@ ${companyProfileText}
 ۵. فقط خود متن نهایی کپشن را خروجی دهید بدون توضیحات اضافه در ابتدا یا انتها.
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-    });
+    let caption = '';
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+      });
+      caption = response.text || '';
+    } catch (genError: any) {
+      console.warn('Gemini generateContent fallback to smart template:', genError?.message);
+      const first = targetList[0];
+      const isCorp = tone === 'corporate_emojis';
+      caption = isCorp
+        ? `✨🏢 【 بازرگانی و ماشین‌آلات تخصصی صنایع چوب 】 🏢✨\n\n📌 معرفی دستگاه ویژه:\n💎 نام دستگاه: ${first.name}\n⚙️ مدل و برند: ${first.model || 'استاندارد'}\n🏷️ وضعیت سلامت: ${first.status === 'ready_for_sale' ? 'آماده تحویل در نمایشگاه' : 'در حال اورهال کامل'}\n\n━━━━━━━━━━━━━━━━━━━━\n💰 شرایط پرداخت استثنایی:\n💵 نقدی: %${first.cashPercentage}\n💳 اقساطی: %${first.installmentPercentage}${first.installmentMonths ? ` (${first.installmentMonths} ماهه)` : ''}\n🛡️ ضمانت معتبر: ${first.warrantyMonths ? `${first.warrantyMonths} ماه گارانتی شرکتی` : 'تست و تحویل در حضور مشتری'}\n${first.price ? `🏷️ قیمت: ${Number(first.price).toLocaleString('fa-IR')} تومان\n` : ''}\n━━━━━━━━━━━━━━━━━━━━\n📋 مشخصات فنی کلیدی:\n${first.specsText ? first.specsText.split('\n').map((l: string) => `• ${l}`).join('\n') : '• مجهز به قطعات صنعتی درجه یک و آماده بهره‌برداری فوری'}\n\n🚀 جهت استعلام قیمت قطعی و هماهنگی بازدید حضوری تماس حاصل فرمایید.\n#صنایع_چوب #فروش_اقساطی_ماشین_آلات #${first.name.replace(/\s+/g, '_')}`
+        : `🔹 فروش دستگاه ${first.name}\nمدل: ${first.model || '-'}\nشرایط پرداخت: ${first.cashPercentage}% نقد و ${first.installmentPercentage}% اقساط\nگارانتی: ${first.warrantyMonths || 0} ماه\n#ماشین_آلات_چوب`;
+    }
 
-    const caption = response.text || '';
     return res.json({ caption });
   } catch (error: any) {
     console.error('Caption generation error:', error);

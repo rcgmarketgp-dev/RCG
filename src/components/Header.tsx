@@ -13,12 +13,15 @@ import {
   Sun,
   Moon,
   Send,
-  Building2
+  Building2,
+  HardDrive,
+  Bell,
+  Calendar
 } from 'lucide-react';
 
 interface HeaderProps {
-  currentView: 'excel' | 'table' | 'showcase';
-  setCurrentView: (view: 'excel' | 'table' | 'showcase') => void;
+  currentView: 'excel' | 'table' | 'showcase' | 'calendar';
+  setCurrentView: (view: 'excel' | 'table' | 'showcase' | 'calendar') => void;
   onAddNewDevice: () => void;
   onOpenExcelModal: () => void;
   onOpenWorkspaceModal: () => void;
@@ -31,6 +34,9 @@ interface HeaderProps {
   onToggleTheme: () => void;
   onOpenAICaption?: () => void;
   onOpenCompanyProfile?: () => void;
+  onOpenBackupModal?: () => void;
+  pendingSchedulesCount?: number;
+  onOpenSchedulesList?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -48,6 +54,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onOpenAICaption,
   onOpenCompanyProfile,
+  onOpenBackupModal,
+  pendingSchedulesCount = 0,
+  onOpenSchedulesList,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-xs w-full max-w-full">
@@ -97,6 +106,31 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-8 h-8 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900 active:scale-95 transition-all shadow-2xs"
                 >
                   <Building2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {onOpenBackupModal && (
+                <button
+                  onClick={onOpenBackupModal}
+                  title="پشتیبان‌گیری و ذخیره‌سازی در حافظه دیوایس"
+                  className="w-8 h-8 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center hover:bg-indigo-100 dark:hover:bg-indigo-900 active:scale-95 transition-all shadow-2xs"
+                >
+                  <HardDrive className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {onOpenSchedulesList && (
+                <button
+                  onClick={onOpenSchedulesList}
+                  title={`زمان‌بندی ارسال آگهی‌ها (${pendingSchedulesCount} مورد در انتظار)`}
+                  className="relative w-8 h-8 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300 flex items-center justify-center hover:bg-amber-100 dark:hover:bg-amber-900 active:scale-95 transition-all shadow-2xs"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  {pendingSchedulesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white font-mono text-[9px] font-bold flex items-center justify-center">
+                      {pendingSchedulesCount}
+                    </span>
+                  )}
                 </button>
               )}
 
@@ -193,6 +227,17 @@ export const Header: React.FC<HeaderProps> = ({
                 ویترین
               </span>
             </button>
+            <button
+              onClick={() => setCurrentView('calendar')}
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                currentView === 'calendar'
+                  ? 'bg-amber-600 text-white shadow-sm font-bold scale-[1.02]'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-zinc-700/60'
+              }`}
+            >
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>تقویم شمسی</span>
+            </button>
           </div>
 
           {/* Desktop Actions */}
@@ -242,6 +287,35 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>پروفایل شرکت</span>
+              </button>
+            )}
+
+            {/* Device Backup & Storage Button */}
+            {onOpenBackupModal && (
+              <button
+                onClick={onOpenBackupModal}
+                title="پشتیبان‌گیری و ذخیره‌سازی اطلاعات در حافظه دیوایس و فضای ابری"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-900/60 bg-violet-50/70 dark:bg-violet-950/40 text-xs font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-100 hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200"
+              >
+                <HardDrive className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>پشتیبان‌گیری دیوایس</span>
+              </button>
+            )}
+
+            {/* Broadcast Schedule Bell Button */}
+            {onOpenSchedulesList && (
+              <button
+                onClick={onOpenSchedulesList}
+                title={`لیست زمان‌بندی‌های ارسال آگهی (${pendingSchedulesCount} مورد در انتظار)`}
+                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/40 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-100 hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200"
+              >
+                <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>زمان‌بندی‌ها</span>
+                {pendingSchedulesCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-red-600 text-white font-mono text-[10px] font-bold flex items-center justify-center">
+                    {pendingSchedulesCount}
+                  </span>
+                )}
               </button>
             )}
 

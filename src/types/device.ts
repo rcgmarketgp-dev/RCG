@@ -17,6 +17,21 @@ export interface DeviceImage {
   isCover?: boolean;
 }
 
+export type BroadcastPlatform = 'telegram' | 'bale' | 'eitaa' | 'whatsapp' | 'instagram' | 'divar' | 'rubika' | 'other';
+
+export type CaptionTone = 'attractive' | 'corporate_emojis' | 'technical' | 'urgent' | 'formal';
+
+export interface BroadcastSchedule {
+  id: string;
+  channelOrGroupName: string;
+  platform: BroadcastPlatform;
+  scheduledDateTime: string; // e.g. "2026-10-18T14:30"
+  notes?: string;
+  status: 'pending' | 'sent' | 'cancelled';
+  createdAt: string;
+  notified?: boolean;
+}
+
 export interface DeviceItem {
   id: string;
   code: string;
@@ -38,6 +53,7 @@ export interface DeviceItem {
   relatedDeviceIds?: string[];
   notes?: string;
   images: DeviceImage[];
+  schedules?: BroadcastSchedule[];
   createdAt: string;
   updatedAt: string;
 }

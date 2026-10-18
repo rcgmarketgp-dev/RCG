@@ -66,7 +66,7 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
   const [activeMessenger, setActiveMessenger] = useState<MessengerPlatform>('telegram');
 
   // Tone & caption state
-  const [tone, setTone] = useState<'attractive' | 'technical' | 'urgent' | 'formal'>('attractive');
+  const [tone, setTone] = useState<'corporate_emojis' | 'attractive' | 'technical' | 'urgent' | 'formal'>('corporate_emojis');
   const [caption, setCaption] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -266,10 +266,11 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
   };
 
   const tones = [
+    { id: 'corporate_emojis', label: 'استیکر و ایموجی شرکتی', icon: Sparkles },
     { id: 'attractive', label: 'جذاب و پربازدید', icon: ThumbsUp },
     { id: 'technical', label: 'تخصصی و فنی', icon: Wrench },
     { id: 'urgent', label: 'فروش فوری و تخفیف', icon: Flame },
-    { id: 'formal', label: 'رسمی و شرکتی', icon: Building2 },
+    { id: 'formal', label: 'رسمی و اداری', icon: Building2 },
   ];
 
   return (
@@ -568,6 +569,38 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
             /* TAB 1: REALISTIC MESSENGER CHAT SIMULATOR */
             <div className="max-w-2xl mx-auto space-y-4">
               
+              {/* Quick Tone Switcher in Preview */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>لحن کپشن هوشمند:</span>
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {tones.map((t) => {
+                    const IconComponent = t.icon;
+                    const isSelected = tone === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setTone(t.id as any);
+                          handleGenerate(currentTargetDevices, activeMessenger, t.id as any);
+                        }}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                          isSelected
+                            ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                            : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60'
+                        }`}
+                      >
+                        <IconComponent className="w-3 h-3" />
+                        <span>{t.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Optional Recipient Phone or Username */}
               <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -809,7 +842,7 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
                 <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block mb-2">
                   لحن نگارش متن آگهی:
                 </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                   {tones.map((t) => {
                     const IconComponent = t.icon;
                     const isSelected = tone === t.id;
@@ -823,7 +856,7 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
                         className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-medium border transition ${
                           isSelected
                             ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 shadow-xs'
-                            : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
+                            : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
                         }`}
                       >
                         <IconComponent className="w-3.5 h-3.5" />

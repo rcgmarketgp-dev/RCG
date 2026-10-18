@@ -8,15 +8,14 @@ import {
   ShieldCheck, 
   ChevronDown, 
   ChevronUp, 
-  Percent, 
-  Columns3
+  Percent
 } from 'lucide-react';
 
 interface AdvancedFilterBarProps {
   filters: FilterOptions;
   setFilters: React.Dispatch<React.SetStateAction<FilterOptions>>;
   categories: CategoryInfo[];
-  onOpenColumnConfig: () => void;
+  onOpenColumnConfig?: () => void;
   filteredCount: number;
   totalCount: number;
 }
@@ -95,57 +94,29 @@ export const AdvancedFilterBar: React.FC<AdvancedFilterBarProps> = ({
           )}
         </div>
 
-        {/* Status Filter Buttons */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            onClick={() => handleStatusChange('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-              filters.status === 'all'
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200'
-            }`}
-          >
-            همه وضعیت‌ها
-          </button>
-          <button
-            onClick={() => handleStatusChange('ready_for_sale')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-              filters.status === 'ready_for_sale'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-xs bg-emerald-400" />
-            {STATUS_META.ready_for_sale.label}
-          </button>
-          <button
-            onClick={() => handleStatusChange('under_overhaul')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-              filters.status === 'under_overhaul'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-xs bg-amber-400" />
-            {STATUS_META.under_overhaul.label}
-          </button>
-          <button
-            onClick={() => handleStatusChange('sold')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-              filters.status === 'sold'
-                ? 'bg-zinc-700 text-white shadow-sm'
-                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300'
-            }`}
-          >
-            {STATUS_META.sold.label}
-          </button>
+        {/* Status Dropdown Filter (لیست کشویی وضعیت دستگاه) */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 shrink-0">وضعیت دستگاه:</span>
+          <div className="relative min-w-[170px] sm:min-w-[200px]">
+            <select
+              value={filters.status}
+              onChange={(e) => handleStatusChange(e.target.value as 'all' | DeviceStatus)}
+              className="w-full px-3 py-2 pr-8 pl-8 rounded-xl text-xs font-bold bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:outline-hidden focus:border-blue-500 cursor-pointer appearance-none transition shadow-2xs hover:border-zinc-300"
+            >
+              <option value="all">همه وضعیت‌ها (کل موجودی)</option>
+              <option value="ready_for_sale">🟢 {STATUS_META.ready_for_sale.label}</option>
+              <option value="under_overhaul">🟡 {STATUS_META.under_overhaul.label}</option>
+              <option value="sold">⚪ {STATUS_META.sold.label}</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
 
-        {/* More Filters Toggle & Columns Config */}
+        {/* More Filters Toggle */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <button
             onClick={() => setShowMoreFilters(!showMoreFilters)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
               showMoreFilters || isFiltered
                 ? 'border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-300 shadow-2xs'
                 : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -156,20 +127,11 @@ export const AdvancedFilterBar: React.FC<AdvancedFilterBarProps> = ({
             {showMoreFilters ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
 
-          <button
-            onClick={onOpenColumnConfig}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
-            title="شخصی‌سازی و جابجایی ستون‌های جدول"
-          >
-            <Columns3 className="w-3.5 h-3.5 text-zinc-500" />
-            <span>تنظیم ستون‌ها</span>
-          </button>
-
           {isFiltered && (
             <button
               onClick={handleResetFilters}
               title="بازنشانی فیلترها"
-              className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+              className="p-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -177,39 +139,41 @@ export const AdvancedFilterBar: React.FC<AdvancedFilterBarProps> = ({
         </div>
       </div>
 
-      {/* Category Filter Chips with Distinct Colors: Wrapped for mobile safety */}
-      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center gap-1.5 flex-wrap text-xs">
-        <span className="text-zinc-400 font-semibold shrink-0 ml-1">دسته‌بندی:</span>
-        <button
-          onClick={() => handleCategoryChange('all')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-            filters.category === 'all'
-              ? 'bg-blue-600 text-white font-bold shadow-xs'
-              : 'bg-zinc-100 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200'
-          }`}
-        >
-          همه دسته‌ها
-        </button>
-        {categories.map((cat) => {
-          const isSelected = filters.category === cat.name;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.name)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-                isSelected
-                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white shadow-xs'
-                  : `${cat.colorBg} ${cat.colorText} ${cat.colorBorder} hover:opacity-90`
-              }`}
+      {/* Category Dropdown Filter (لیست کشویی دسته‌بندی انبار) */}
+      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-zinc-500 dark:text-zinc-400 font-bold shrink-0">دسته‌بندی دستگاه‌ها:</span>
+          <div className="relative min-w-[220px] sm:min-w-[280px]">
+            <select
+              value={filters.category}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full px-3 py-1.5 pr-8 pl-8 rounded-xl text-xs font-bold bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:outline-hidden focus:border-blue-500 cursor-pointer appearance-none transition"
             >
-              <span
-                className="w-2 h-2 rounded-xs"
-                style={{ backgroundColor: cat.badgeHex }}
-              />
-              <span>{cat.name}</span>
+              <option value="all">همه دسته‌ها (کل موجودی)</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+        {filters.category !== 'all' && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-zinc-400">دسته‌بندی فعال:</span>
+            <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+              {filters.category}
+            </span>
+            <button
+              onClick={() => handleCategoryChange('all')}
+              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline"
+            >
+              نمایش همه
             </button>
-          );
-        })}
+          </div>
+        )}
       </div>
 
       {/* Collapsible Advanced Filters (Warranty, Payment Terms, Sort) */}

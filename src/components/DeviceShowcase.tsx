@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { DeviceItem, CategoryInfo, DeviceStatus } from '../types/device';
+import { DeviceItem, CategoryInfo, DeviceStatus, BroadcastSchedule } from '../types/device';
 import { STATUS_META } from '../data/initialData';
+import { BROADCAST_PLATFORMS, formatScheduledDateTime } from '../lib/broadcastSchedule';
 import { 
   Sparkles, 
   Wand2, 
@@ -9,7 +10,14 @@ import {
   Image as ImageIcon, 
   Layers, 
   ArrowLeft,
-  Coins
+  Coins,
+  Clock,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Send,
+  ChevronDown,
+  Calendar
 } from 'lucide-react';
 
 interface DeviceShowcaseProps {
@@ -19,6 +27,9 @@ interface DeviceShowcaseProps {
   onOpenAICaption: (device: DeviceItem) => void;
   onOpenAIFixSpelling: (device: DeviceItem) => void;
   onStatusChange: (device: DeviceItem, newStatus: DeviceStatus) => void;
+  onOpenScheduleModal?: (device: DeviceItem) => void;
+  onDeleteSchedule?: (deviceId: string, scheduleId: string) => void;
+  onToggleScheduleStatus?: (deviceId: string, scheduleId: string) => void;
 }
 
 export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
@@ -27,6 +38,9 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
   onViewDevice,
   onOpenAICaption,
   onOpenAIFixSpelling,
+  onOpenScheduleModal,
+  onDeleteSchedule,
+  onToggleScheduleStatus,
 }) => {
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
 
@@ -50,44 +64,40 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Category Quick Filter Buttons with Category Colors */}
-      <div className="bg-white dark:bg-zinc-800/90 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 shadow-2xs">
-        <div className="flex items-center gap-1.5 flex-wrap text-xs">
-          <span className="text-zinc-400 font-semibold shrink-0 ml-1">دسته‌بندی ویترین:</span>
-          <button
-            onClick={() => setSelectedCategoryTab('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-              selectedCategoryTab === 'all'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200'
-            }`}
-          >
-            همه دسته‌ها ({devices.length})
-          </button>
-          {categories.map((cat) => {
-            const count = devices.filter((d) => d.category === cat.name).length;
-            if (count === 0) return null;
-            const isSelected = selectedCategoryTab === cat.name;
+      {/* Category Dropdown List Filter (لیست کشویی دسته‌بندی ویترین) */}
+      <div className="bg-white dark:bg-zinc-800/90 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <Layers className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+              انتخاب دسته‌بندی ویترین (لیست کشویی)
+            </h3>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              نمایش تخصصی ماشین‌آلات بر اساس دسته انتخاب‌شده
+            </p>
+          </div>
+        </div>
 
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategoryTab(cat.name)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold border transition-all duration-200 shrink-0 hover:-translate-y-0.5 active:scale-95 ${
-                  isSelected
-                    ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 shadow-xs'
-                    : `${cat.colorBg} ${cat.colorText} ${cat.colorBorder}`
-                }`}
-              >
-                <span
-                  className="w-2 h-2 rounded-xs shrink-0"
-                  style={{ backgroundColor: cat.badgeHex }}
-                />
-                <span>{cat.name}</span>
-                <span className="text-[11px] opacity-75 font-mono">({count})</span>
-              </button>
-            );
-          })}
+        <div className="relative min-w-[260px] sm:min-w-[320px]">
+          <select
+            value={selectedCategoryTab}
+            onChange={(e) => setSelectedCategoryTab(e.target.value)}
+            className="w-full px-3.5 py-2.5 pr-9 pl-9 rounded-xl text-xs font-bold bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:outline-hidden focus:border-indigo-500 cursor-pointer appearance-none shadow-2xs transition"
+          >
+            <option value="all">همه دسته‌بندی‌ها (مجموع {devices.length} دستگاه)</option>
+            {categories.map((cat) => {
+              const count = devices.filter((d) => d.category === cat.name).length;
+              return (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name} ({count} دستگاه)
+                </option>
+              );
+            })}
+          </select>
+          <ChevronDown className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Layers className="w-4 h-4 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
@@ -136,11 +146,12 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
               {items.map((device) => {
                 const statusMeta = STATUS_META[device.status] || STATUS_META.ready_for_sale;
                 const coverImg = device.images?.find((i) => i.isCover) || device.images?.[0];
+                const deviceSchedules = device.schedules || [];
 
                 return (
                   <div
                     key={device.id}
-                    className="bg-white dark:bg-zinc-800/90 rounded-3xl border border-zinc-200/90 dark:border-zinc-700 overflow-hidden shadow-2xs hover:shadow-lg hover:-translate-y-1 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200 flex flex-col group"
+                    className="bg-white dark:bg-zinc-800/90 rounded-3xl border border-zinc-200/90 dark:border-zinc-700 overflow-hidden shadow-2xs hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200 flex flex-col group"
                   >
                     {/* Image Thumbnail with Overlay Badges */}
                     <div className="relative h-48 bg-zinc-100 dark:bg-zinc-900 overflow-hidden cursor-pointer" onClick={() => onViewDevice(device)}>
@@ -207,7 +218,7 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
                             </div>
                           </div>
 
-                          {/* Dual progress bar: Rounded rect */}
+                          {/* Dual progress bar */}
                           <div className="w-full h-1.5 rounded-sm bg-zinc-200 dark:bg-zinc-700 overflow-hidden flex">
                             <div
                               className="bg-emerald-500 h-full"
@@ -233,7 +244,7 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
                         </div>
 
                         {/* Price */}
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-3">
                           <span className="text-xs text-zinc-400 flex items-center gap-1">
                             <Coins className="w-3.5 h-3.5 text-zinc-400" />
                             قیمت پایه:
@@ -248,6 +259,102 @@ export const DeviceShowcase: React.FC<DeviceShowcaseProps> = ({
                               <span className="text-xs font-sans text-blue-600">تماس بگیرید</span>
                             )}
                           </span>
+                        </div>
+
+                        {/* ======================================================== */}
+                        {/* Dedicated Broadcast Scheduling Section for this Device  */}
+                        {/* ======================================================== */}
+                        <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-2.5 mb-3 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200">
+                              <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                              <span>زمان‌بندی ارسال آگهی ({deviceSchedules.length})</span>
+                            </div>
+                            {onOpenScheduleModal && (
+                              <button
+                                onClick={() => onOpenScheduleModal(device)}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-2xs transition active:scale-95"
+                                title="افزودن زمان‌بندی جدید برای ارسال به کانال یا گروه"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>افزودن</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* List of schedules */}
+                          {deviceSchedules.length === 0 ? (
+                            <div className="text-[11px] text-zinc-400 py-1 text-center">
+                              هنوز زمان‌بندی ارسالی برای این دستگاه تعریف نشده است.
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                              {deviceSchedules.map((sched) => {
+                                const platformInfo = BROADCAST_PLATFORMS[sched.platform] || BROADCAST_PLATFORMS.other;
+                                const isSent = sched.status === 'sent';
+
+                                return (
+                                  <div
+                                    key={sched.id}
+                                    className="p-2 rounded-xl bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-1 text-[11px]"
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className={`px-1.5 py-0.2 rounded-md font-bold text-[10px] ${platformInfo.badgeBg} ${platformInfo.badgeText}`}>
+                                          {platformInfo.name}
+                                        </span>
+                                        <span className="font-bold text-zinc-800 dark:text-zinc-200 truncate" title={sched.channelOrGroupName}>
+                                          {sched.channelOrGroupName}
+                                        </span>
+                                      </div>
+                                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1">
+                                        <Calendar className="w-2.5 h-2.5" />
+                                        <span>{formatScheduledDateTime(sched.scheduledDateTime)}</span>
+                                        {isSent && (
+                                          <span className="text-emerald-600 font-bold mr-1">✓ ارسال شد</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {onToggleScheduleStatus && (
+                                        <button
+                                          onClick={() => onToggleScheduleStatus(device.id, sched.id)}
+                                          title={isSent ? 'تغییر به در انتظار' : 'علامت‌گذاری به عنوان ارسال شده'}
+                                          className={`p-1 rounded-lg transition ${
+                                            isSent 
+                                              ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' 
+                                              : 'text-zinc-400 hover:text-emerald-600 hover:bg-zinc-100'
+                                          }`}
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+
+                                      <button
+                                        onClick={() => onOpenAICaption(device)}
+                                        title="ارسال مستقیم آگهی این دستگاه"
+                                        className="p-1 rounded-lg text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition"
+                                      >
+                                        <Send className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      {onDeleteSchedule && (
+                                        <button
+                                          onClick={() => onDeleteSchedule(device.id, sched.id)}
+                                          title="حذف این زمان‌بندی"
+                                          className="p-1 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
 

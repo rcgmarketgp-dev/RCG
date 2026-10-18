@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ColumnConfig, DeviceItem, CategoryInfo, DeviceStatus } from '../types/device';
 import { STATUS_META } from '../data/initialData';
 import { 
@@ -11,8 +11,10 @@ import {
   ShieldCheck, 
   ChevronDown,
   PlusCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ZoomIn
 } from 'lucide-react';
+import { QuickLookModal } from './QuickLookModal';
 
 interface DeviceTableProps {
   devices: DeviceItem[];
@@ -41,6 +43,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
   onAddNewDevice,
   onOpenExcelModal,
 }) => {
+  const [quickLookDevice, setQuickLookDevice] = useState<DeviceItem | null>(null);
   const visibleColumns = [...columns].filter((c) => c.visible).sort((a, b) => a.order - b.order);
 
   const getCategoryMeta = (catName: string) => {
@@ -108,10 +111,11 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
             >
               {/* Header of mobile card: Image + Title + Status */}
               <div className="flex items-start gap-3">
-                {/* Rounded Square Thumbnail */}
+                {/* Rounded Square Thumbnail with Quick Look */}
                 <div
-                  onClick={() => onViewDevice(device)}
+                  onClick={() => setQuickLookDevice(device)}
                   className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 overflow-hidden shrink-0 cursor-pointer relative group"
+                  title="مشاهده تصویر بزرگتر (Quick Look)"
                 >
                   {coverImg ? (
                     <img src={coverImg.url} alt={device.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
@@ -120,8 +124,11 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                       <ImageIcon className="w-6 h-6 opacity-40" />
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                    <ZoomIn className="w-5 h-5 drop-shadow-md" />
+                  </div>
                   {device.images && device.images.length > 1 && (
-                    <span className="absolute bottom-1 left-1 bg-black/75 text-[9px] text-white px-1 rounded-sm font-mono">
+                    <span className="absolute bottom-1 left-1 bg-black/75 text-[9px] text-white px-1 rounded-sm font-mono z-10">
                       +{device.images.length}
                     </span>
                   )}
@@ -288,9 +295,9 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                         return (
                           <td key={col.id} className="px-4 py-3">
                             <div
-                              onClick={() => onViewDevice(device)}
-                              className="relative w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-pointer group-hover:scale-105 transition shadow-2xs"
-                              title="مشاهده گالری تصاویر دستگاه"
+                              onClick={() => setQuickLookDevice(device)}
+                              className="relative w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-pointer group-hover:scale-105 transition shadow-2xs group/img"
+                              title="مشاهده تصویر بزرگتر (Quick Look)"
                             >
                               {coverImg ? (
                                 <img
@@ -303,8 +310,12 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                                   <ImageIcon className="w-5 h-5" />
                                 </div>
                               )}
+                              {/* Hover Quick Look overlay icon */}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <ZoomIn className="w-4 h-4 drop-shadow-md" />
+                              </div>
                               {device.images && device.images.length > 1 && (
-                                <span className="absolute bottom-0.5 left-0.5 bg-black/75 text-[10px] text-white px-1 rounded-sm font-mono">
+                                <span className="absolute bottom-0.5 left-0.5 bg-black/75 text-[10px] text-white px-1 rounded-sm font-mono z-10">
                                   +{device.images.length}
                                 </span>
                               )}
@@ -510,6 +521,15 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Quick Look Modal for Instant Image Inspection */}
+      <QuickLookModal
+        isOpen={!!quickLookDevice}
+        onClose={() => setQuickLookDevice(null)}
+        device={quickLookDevice}
+        onViewFullDetails={onViewDevice}
+        onOpenAICaption={onOpenAICaption}
+      />
     </div>
   );
 };

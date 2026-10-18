@@ -263,6 +263,26 @@ export const INITIAL_DEVICES: DeviceItem[] = [
     ],
     createdAt: '2026-03-10T08:30:00.000Z',
     updatedAt: '2026-03-10T08:30:00.000Z',
+    schedules: [
+      {
+        id: 'sched-init-1',
+        channelOrGroupName: 'کانال تلگرام ماشین‌آلات چوب ایران',
+        platform: 'telegram',
+        scheduledDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        notes: 'تأکید روی اقساط بدون کارمزد و تحویل فوری',
+        status: 'pending',
+        createdAt: '2026-03-10T08:30:00.000Z',
+      },
+      {
+        id: 'sched-init-2',
+        channelOrGroupName: 'گروه بله مشتریان صنایع چوب',
+        platform: 'bale',
+        scheduledDateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        notes: 'ارسال همراه با ویدئو تست ایستگاه کرنر',
+        status: 'sent',
+        createdAt: '2026-03-09T08:30:00.000Z',
+      }
+    ],
   },
   {
     id: 'dev-wood-2',

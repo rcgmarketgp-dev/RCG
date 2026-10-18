@@ -14,7 +14,8 @@ import {
   Image as ImageIcon,
   Sparkles,
   RefreshCw,
-  Info
+  Info,
+  Columns3
 } from 'lucide-react';
 
 interface ExcelGridEntryProps {
@@ -24,6 +25,7 @@ interface ExcelGridEntryProps {
   onOpenAICaption: (device: DeviceItem) => void;
   onOpenAIFixSpelling: (device: DeviceItem) => void;
   onViewDevice: (device: DeviceItem) => void;
+  onOpenColumnConfig?: () => void;
 }
 
 interface EditableRow {
@@ -72,6 +74,7 @@ export const ExcelGridEntry: React.FC<ExcelGridEntryProps> = ({
   onOpenAICaption,
   onOpenAIFixSpelling,
   onViewDevice,
+  onOpenColumnConfig,
 }) => {
   // Convert current devices to editable rows
   const [rows, setRows] = useState<EditableRow[]>(() => {
@@ -376,6 +379,18 @@ export const ExcelGridEntry: React.FC<ExcelGridEntryProps> = ({
 
         {/* Action Buttons: Rounded Rectangles */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Column Configuration Button - Exclusively in Excel entry */}
+          {onOpenColumnConfig && (
+            <button
+              onClick={onOpenColumnConfig}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-600 shadow-2xs hover:shadow-xs hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+              title="شخصی‌سازی، جابجایی و پنهان/آشکار کردن ستون‌ها"
+            >
+              <Columns3 className="w-3.5 h-3.5 text-zinc-500" />
+              <span>تنظیم ستون‌ها</span>
+            </button>
+          )}
+
           {/* Add Row Button */}
           <button
             onClick={() => handleAddRows(1)}

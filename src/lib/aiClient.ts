@@ -1,10 +1,10 @@
-import { DeviceItem, AISpellingResult, CompanyProfile } from '../types/device';
+import { DeviceItem, AISpellingResult, CompanyProfile, CaptionTone } from '../types/device';
 
 export interface GenerateCaptionParams {
   device?: Partial<DeviceItem>;
   devices?: Partial<DeviceItem>[];
   platform: 'bale' | 'telegram' | 'eitaa' | 'whatsapp' | 'instagram' | 'divar' | 'linkedin';
-  tone: 'attractive' | 'technical' | 'urgent' | 'formal';
+  tone: CaptionTone;
   companyProfile?: CompanyProfile;
 }
 

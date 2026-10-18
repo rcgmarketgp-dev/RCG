@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Per-user isolated partition for devices
+    match /users/{userId}/devices/{deviceId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Per-user profile & settings
+    match /users/{userId}/profile/{docId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Per-user data collections & backups
+    match /users/{userId}/data/{docId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

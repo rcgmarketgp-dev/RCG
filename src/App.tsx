@@ -5,7 +5,8 @@ import {
   ColumnConfig, 
   CategoryInfo, 
   FilterOptions, 
-  DeviceStatus 
+  DeviceStatus,
+  BroadcastSchedule
 } from './types/device';
 import { 
   INITIAL_DEVICES, 
@@ -14,8 +15,14 @@ import {
 } from './data/initialData';
 import { initAuth, googleSignIn, logoutGoogle } from './lib/firebase';
 import { recordStatusChangeLog } from './lib/statusHistory';
+import { loadDevicesForUser, saveDevicesForUser } from './lib/multiUserStorage';
+import { 
+  findDueSchedules, 
+  playNotificationChime, 
+  sendBrowserNotification,
+  requestNotificationPermission 
+} from './lib/broadcastSchedule';
 import { Header } from './components/Header';
-import { StatsOverview } from './components/StatsOverview';
 import { AdvancedFilterBar } from './components/AdvancedFilterBar';
 import { DeviceTable } from './components/DeviceTable';
 import { DeviceShowcase } from './components/DeviceShowcase';
@@ -28,20 +35,23 @@ import { AIFixSpellModal } from './components/AIFixSpellModal';
 import { ExcelImportModal } from './components/ExcelImportModal';
 import { GoogleWorkspaceModal } from './components/GoogleWorkspaceModal';
 import { CompanyProfileModal } from './components/CompanyProfileModal';
+import { ScheduleModal } from './components/ScheduleModal';
+import { SchedulesOverviewModal } from './components/SchedulesOverviewModal';
+import { BackupRestoreModal } from './components/BackupRestoreModal';
+import { BroadcastNotificationToast } from './components/BroadcastNotificationToast';
+import { BroadcastCalendarView } from './components/BroadcastCalendarView';
+import { QuickActionMenu } from './components/QuickActionMenu';
 
-const STORAGE_KEY_DEVICES = 'rcg_woodworking_devices_v2';
 const STORAGE_KEY_COLUMNS = 'rcg_woodworking_columns_v2';
 
 export default function App() {
-  // Devices state with localStorage persistence
+  // Google Auth state
+  const [googleUser, setGoogleUser] = useState<User | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // Devices state with multi-user / per-email persistence
   const [devices, setDevices] = useState<DeviceItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY_DEVICES);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.warn('Failed to load stored devices:', e);
-    }
-    return INITIAL_DEVICES;
+    return loadDevicesForUser(null, INITIAL_DEVICES);
   });
 
   // Table columns state with localStorage persistence
@@ -58,8 +68,8 @@ export default function App() {
   // Categories
   const [categories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES);
 
-  // View state: 'excel' (Excel-like Grid Entry), 'table' (Entry & Management), or 'showcase' (Catalog & Profile Cards)
-  const [currentView, setCurrentView] = useState<'excel' | 'table' | 'showcase'>('excel');
+  // View state: 'excel' (Excel-like Grid Entry), 'table' (Entry & Management), 'showcase' (Catalog), or 'calendar' (Solar Hijri Broadcast Calendar)
+  const [currentView, setCurrentView] = useState<'excel' | 'table' | 'showcase' | 'calendar'>('excel');
 
   // Theme state with localStorage persistence and system preference detection
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -111,10 +121,6 @@ export default function App() {
     sortOrder: 'desc',
   });
 
-  // Google Auth state
-  const [googleUser, setGoogleUser] = useState<User | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
-
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<DeviceItem | null>(null);
@@ -133,6 +139,15 @@ export default function App() {
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [isCompanyProfileOpen, setIsCompanyProfileOpen] = useState(false);
 
+  // New Modals: Schedule, Schedules Overview & Device Backup
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [schedulingDevice, setSchedulingDevice] = useState<DeviceItem | null>(null);
+  const [isSchedulesOverviewOpen, setIsSchedulesOverviewOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+
+  // Due Broadcast Schedules Notification
+  const [dueSchedules, setDueSchedules] = useState<{ device: DeviceItem; schedule: BroadcastSchedule }[]>([]);
+
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -141,14 +156,10 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Persist devices
+  // Persist devices per logged in email or local guest
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DEVICES, JSON.stringify(devices));
-    } catch (e) {
-      console.warn('Failed to save devices to storage:', e);
-    }
-  }, [devices]);
+    saveDevicesForUser(googleUser?.email, devices);
+  }, [devices, googleUser?.email]);
 
   // Persist column settings
   useEffect(() => {
@@ -164,6 +175,9 @@ export default function App() {
     const unsubscribe = initAuth(
       (user) => {
         setGoogleUser(user);
+        // Load data specific to this authenticated email
+        const userDevices = loadDevicesForUser(user.email, devices);
+        setDevices(userDevices);
       },
       () => {
         setGoogleUser(null);
@@ -174,13 +188,52 @@ export default function App() {
     };
   }, []);
 
+  // Request browser notification permission on first interaction
+  useEffect(() => {
+    requestNotificationPermission().catch(() => {});
+  }, []);
+
+  // Check for due broadcast schedules periodically (every 10 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const due = findDueSchedules(devices);
+      if (due.length > 0) {
+        setDueSchedules(due);
+        playNotificationChime();
+        due.forEach(({ device, schedule }) => {
+          sendBrowserNotification('⏰ موعد ارسال آگهی فرا رسید', {
+            body: `زمان ارسال آگهی «${device.name}» به ${schedule.channelOrGroupName} فرا رسیده است.`,
+          });
+        });
+
+        // Mark schedules as notified in device list to avoid repetitive alerts
+        setDevices((prev) =>
+          prev.map((d) => {
+            if (!d.schedules) return d;
+            const updated = d.schedules.map((s) => {
+              if (due.some((item) => item.schedule.id === s.id)) {
+                return { ...s, notified: true };
+              }
+              return s;
+            });
+            return { ...d, schedules: updated };
+          })
+        );
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [devices]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoggingIn(true);
       const res = await googleSignIn();
       if (res) {
         setGoogleUser(res.user);
-        showToast(`خوش آمدید، ${res.user.displayName || res.user.email}`);
+        const userDevices = loadDevicesForUser(res.user.email, devices);
+        setDevices(userDevices);
+        showToast(`خوش آمدید، اطلاعات حساب ${res.user.email} بارگذاری شد.`);
       }
     } catch (err: any) {
       console.error('Sign-in error:', err);
@@ -193,8 +246,21 @@ export default function App() {
   const handleGoogleLogout = async () => {
     await logoutGoogle();
     setGoogleUser(null);
-    showToast('با موفقیت از حساب گوگل خارج شدید.');
+    const guestDevices = loadDevicesForUser(null, INITIAL_DEVICES);
+    setDevices(guestDevices);
+    showToast('با موفقیت از حساب خارج شدید و انبار محلی بارگذاری شد.');
   };
+
+  // Count pending schedules for the Header notification bell
+  const pendingSchedulesCount = useMemo(() => {
+    let count = 0;
+    devices.forEach((d) => {
+      if (d.schedules) {
+        count += d.schedules.filter((s) => s.status === 'pending').length;
+      }
+    });
+    return count;
+  }, [devices]);
 
   // Filtered & Sorted devices list
   const filteredDevices = useMemo(() => {
@@ -265,7 +331,7 @@ export default function App() {
       });
   }, [devices, filters]);
 
-  // Handlers
+  // Handlers for Device management
   const handleAddNewDevice = () => {
     setEditingDevice(null);
     setIsFormOpen(true);
@@ -376,7 +442,6 @@ export default function App() {
   };
 
   const handleImportExcelSuccess = (imported: DeviceItem[]) => {
-    // Record initial status for imported devices
     imported.forEach((dev) => {
       recordStatusChangeLog(
         dev.id,
@@ -396,7 +461,6 @@ export default function App() {
   };
 
   const handleSaveAllFromGrid = (updatedList: DeviceItem[]) => {
-    // Check if any status changed in the grid
     updatedList.forEach((newDev) => {
       const prevDev = devices.find((d) => d.id === newDev.id);
       if (prevDev && prevDev.status !== newDev.status) {
@@ -422,6 +486,100 @@ export default function App() {
     showToast(`اطلاعات ${updatedList.length} دستگاه در انبار با موفقیت ذخیره شد.`);
   };
 
+  // Schedule Management Handlers
+  const handleOpenScheduleModal = (device: DeviceItem) => {
+    setSchedulingDevice(device);
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleSaveSchedule = (deviceId: string, schedule: BroadcastSchedule) => {
+    setDevices((prev) =>
+      prev.map((d) => {
+        if (d.id !== deviceId) return d;
+        const currentSchedules = d.schedules || [];
+        const exists = currentSchedules.some((s) => s.id === schedule.id);
+        const updated = exists
+          ? currentSchedules.map((s) => (s.id === schedule.id ? schedule : s))
+          : [...currentSchedules, schedule];
+        return { ...d, schedules: updated };
+      })
+    );
+    showToast(`زمان‌بندی ارسال به «${schedule.channelOrGroupName}» ذخیره شد.`);
+  };
+
+  const handleDeleteSchedule = (deviceId: string, scheduleId: string) => {
+    setDevices((prev) =>
+      prev.map((d) => {
+        if (d.id !== deviceId) return d;
+        return {
+          ...d,
+          schedules: (d.schedules || []).filter((s) => s.id !== scheduleId),
+        };
+      })
+    );
+    showToast('زمان‌بندی با موفقیت حذف گردید.');
+  };
+
+  const handleToggleScheduleStatus = (deviceId: string, scheduleId: string) => {
+    setDevices((prev) =>
+      prev.map((d) => {
+        if (d.id !== deviceId) return d;
+        return {
+          ...d,
+          schedules: (d.schedules || []).map((s) => {
+            if (s.id !== scheduleId) return s;
+            const nextStatus = s.status === 'sent' ? 'pending' : 'sent';
+            return { ...s, status: nextStatus };
+          }),
+        };
+      })
+    );
+    showToast('وضعیت ارسال تغییر یافت.');
+  };
+
+  const handleSnoozeSchedule = (deviceId: string, scheduleId: string, minutes: number) => {
+    const newTime = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    setDevices((prev) =>
+      prev.map((d) => {
+        if (d.id !== deviceId) return d;
+        return {
+          ...d,
+          schedules: (d.schedules || []).map((s) => {
+            if (s.id !== scheduleId) return s;
+            return { ...s, scheduledDateTime: newTime, notified: false, status: 'pending' };
+          }),
+        };
+      })
+    );
+    setDueSchedules((prev) => prev.filter((i) => i.schedule.id !== scheduleId));
+    showToast(`ارسال آگهی به مدت ${minutes} دقیقه به تعویق افتاد.`);
+  };
+
+  const handleDismissDueNotification = (scheduleId: string) => {
+    setDueSchedules((prev) => prev.filter((i) => i.schedule.id !== scheduleId));
+  };
+
+  const handleMarkSentFromNotification = (deviceId: string, scheduleId: string) => {
+    handleToggleScheduleStatus(deviceId, scheduleId);
+    setDueSchedules((prev) => prev.filter((i) => i.schedule.id !== scheduleId));
+  };
+
+  // Backup & Restore Handlers
+  const handleRestoreDevices = (restored: DeviceItem[], mode: 'replace' | 'merge') => {
+    if (mode === 'replace') {
+      setDevices(restored);
+      showToast(`موجودی انبار با موفقیت با ${restored.length} دستگاه از فایل پشتیبان جایگزین شد.`);
+    } else {
+      setDevices((prev) => {
+        const map = new Map<string, DeviceItem>();
+        prev.forEach((d) => map.set(d.id, d));
+        restored.forEach((d) => map.set(d.id, d));
+        return Array.from(map.values());
+      });
+      showToast(`${restored.length} دستگاه از نسخه پشتیبان با اطلاعات موجود ادغام گردید.`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-100/70 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white w-full max-w-full overflow-x-hidden">
       {/* Toast Notification */}
@@ -430,6 +588,17 @@ export default function App() {
           {toastMessage}
         </div>
       )}
+
+      {/* Broadcast Due Notification Banner / Toast */}
+      <BroadcastNotificationToast
+        dueItems={dueSchedules}
+        onDismiss={handleDismissDueNotification}
+        onMarkSent={handleMarkSentFromNotification}
+        onSendNow={(device) => {
+          handleOpenAICaption(device);
+        }}
+        onSnooze={handleSnoozeSchedule}
+      />
 
       {/* Main App Header */}
       <Header
@@ -450,6 +619,9 @@ export default function App() {
           setIsAICaptionOpen(true);
         }}
         onOpenCompanyProfile={() => setIsCompanyProfileOpen(true)}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
+        pendingSchedulesCount={pendingSchedulesCount}
+        onOpenSchedulesList={() => setIsSchedulesOverviewOpen(true)}
       />
 
       {/* Main Container */}
@@ -457,9 +629,6 @@ export default function App() {
         style={{ width: '1400px', maxWidth: '100%', minHeight: '200px' }}
         className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full overflow-x-hidden"
       >
-        {/* Top Analytics Bar */}
-        <StatsOverview devices={devices} />
-
         {/* View Mode Quick Switch Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-5 bg-white dark:bg-zinc-800/80 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xs">
           <div className="flex items-center gap-2 flex-wrap">
@@ -469,9 +638,17 @@ export default function App() {
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
                 : currentView === 'table'
                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
+                : currentView === 'showcase'
+                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
             }`}>
-              {currentView === 'excel' ? 'صفحه گسترده ورود اکسلی' : currentView === 'table' ? 'جدول مدیریت انبار و فیلترها' : 'ویترین کاتالوگ فروش'}
+              {currentView === 'excel'
+                ? 'صفحه گسترده ورود اکسلی'
+                : currentView === 'table'
+                ? 'جدول مدیریت انبار و فیلترها'
+                : currentView === 'showcase'
+                ? 'ویترین کاتالوگ فروش'
+                : 'تقویم خورشیدی ارسال آگهی‌ها'}
             </span>
           </div>
 
@@ -489,7 +666,7 @@ export default function App() {
                 onClick={() => setCurrentView('table')}
                 className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 active:scale-95 transition-all font-semibold"
               >
-                جدول اصلی
+                جدول اصلی انبار
               </button>
             )}
             {currentView !== 'showcase' && (
@@ -497,7 +674,15 @@ export default function App() {
                 onClick={() => setCurrentView('showcase')}
                 className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 active:scale-95 transition-all font-semibold"
               >
-                ویترین فروش
+                ویترین فروش و زمان‌بندی
+              </button>
+            )}
+            {currentView !== 'calendar' && (
+              <button
+                onClick={() => setCurrentView('calendar')}
+                className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 active:scale-95 transition-all font-semibold"
+              >
+                تقویم خورشیدی ارسال‌ها
               </button>
             )}
           </div>
@@ -512,11 +697,12 @@ export default function App() {
             onOpenAICaption={handleOpenAICaption}
             onOpenAIFixSpelling={handleOpenAIFixSpelling}
             onViewDevice={handleViewDevice}
+            onOpenColumnConfig={() => setIsColumnConfigOpen(true)}
           />
         )}
 
         {/* Filter bar for Table and Showcase views */}
-        {currentView !== 'excel' && (
+        {(currentView === 'table' || currentView === 'showcase') && (
           <AdvancedFilterBar
             filters={filters}
             setFilters={setFilters}
@@ -544,7 +730,7 @@ export default function App() {
           />
         )}
 
-        {/* View 3: Showcase & Profile Catalog View */}
+        {/* View 3: Showcase & Profile Catalog View with Schedules */}
         {currentView === 'showcase' && (
           <DeviceShowcase
             devices={filteredDevices}
@@ -553,6 +739,21 @@ export default function App() {
             onOpenAICaption={handleOpenAICaption}
             onOpenAIFixSpelling={handleOpenAIFixSpelling}
             onStatusChange={handleStatusChange}
+            onOpenScheduleModal={handleOpenScheduleModal}
+            onDeleteSchedule={handleDeleteSchedule}
+            onToggleScheduleStatus={handleToggleScheduleStatus}
+          />
+        )}
+
+        {/* View 4: Persian Solar Calendar for Broadcast Ads */}
+        {currentView === 'calendar' && (
+          <BroadcastCalendarView
+            devices={devices}
+            onOpenDeviceDetail={handleViewDevice}
+            onOpenScheduleModal={handleOpenScheduleModal}
+            onOpenAICaption={handleOpenAICaption}
+            onDeleteSchedule={handleDeleteSchedule}
+            onToggleScheduleStatus={handleToggleScheduleStatus}
           />
         )}
       </main>
@@ -560,7 +761,7 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-auto py-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 dark:text-zinc-400 bg-white/50 dark:bg-zinc-900/50">
         <p>
-          سامانه هوشمند مدیریت موجودی و فروش ماشین‌آلات صنعتی • اتصال مستقیم به Google Sheets و Drive • مجهز به هوش مصنوعی ویراستار و کپشن‌ساز
+          سامانه هوشمند مدیریت موجودی و فروش ماشین‌آلات صنعتی • اتصال به Google Sheets و Drive • سیستم زمان‌بندی ارسال آگهی، پشتیبان‌گیری دیوایس و هوش مصنوعی
         </p>
       </footer>
 
@@ -650,6 +851,58 @@ export default function App() {
         googleUser={googleUser}
         onGoogleSignIn={handleGoogleSignIn}
         isLoggingIn={isLoggingIn}
+      />
+
+      {/* Broadcast Schedule Modal for Device */}
+      <ScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setSchedulingDevice(null);
+        }}
+        device={schedulingDevice}
+        onSaveSchedule={handleSaveSchedule}
+      />
+
+      {/* Schedules Overview List Modal */}
+      <SchedulesOverviewModal
+        isOpen={isSchedulesOverviewOpen}
+        onClose={() => setIsSchedulesOverviewOpen(false)}
+        devices={devices}
+        onOpenAICaption={handleOpenAICaption}
+        onToggleScheduleStatus={handleToggleScheduleStatus}
+        onDeleteSchedule={handleDeleteSchedule}
+        onAddNewSchedule={() => {
+          if (devices.length > 0) {
+            setSchedulingDevice(devices[0]);
+            setIsScheduleModalOpen(true);
+          }
+        }}
+      />
+
+      {/* Device Backup & Restore Modal */}
+      <BackupRestoreModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        devices={devices}
+        onRestoreDevices={handleRestoreDevices}
+        googleUser={googleUser}
+        columns={columns}
+      />
+
+      {/* Floating Quick Action Speed-Dial Menu */}
+      <QuickActionMenu
+        onAddNewDevice={handleAddNewDevice}
+        onOpenExcelGrid={() => setCurrentView('excel')}
+        onOpenCalendar={() => setCurrentView('calendar')}
+        onOpenSchedulesOverview={() => setIsSchedulesOverviewOpen(true)}
+        onOpenExcelModal={() => setIsExcelModalOpen(true)}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
+        onOpenAICaption={() => {
+          setAiCaptionDevice(null);
+          setIsAICaptionOpen(true);
+        }}
+        pendingSchedulesCount={pendingSchedulesCount}
       />
     </div>
   );

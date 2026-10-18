@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Device": {
+      "title": "Device",
+      "description": "Represents an industrial woodworking machine/equipment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "price": { "type": "number" },
+        "cashPercentage": { "type": "number" },
+        "installmentPercentage": { "type": "number" },
+        "installmentMonths": { "type": "number" },
+        "warrantyMonths": { "type": "number" },
+        "updatedAt": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Stores user settings, company profile and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": "Device",
+      "description": "User-owned devices collection partitioned per user account"
+    },
+    "/users/{userId}/profile/info": {
+      "schema": "UserProfile",
+      "description": "User profile and business identity settings"
+    }
+  }
+}
