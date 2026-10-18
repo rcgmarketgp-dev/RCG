@@ -9,7 +9,8 @@ import {
   HardDrive,
   Sparkles,
   Layers,
-  Wand2
+  Wand2,
+  Smartphone
 } from 'lucide-react';
 
 interface QuickActionMenuProps {
@@ -20,6 +21,7 @@ interface QuickActionMenuProps {
   onOpenExcelModal: () => void;
   onOpenBackupModal: () => void;
   onOpenAICaption: () => void;
+  onOpenInstallModal?: () => void;
   pendingSchedulesCount?: number;
 }
 
@@ -31,6 +33,7 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
   onOpenExcelModal,
   onOpenBackupModal,
   onOpenAICaption,
+  onOpenInstallModal,
   pendingSchedulesCount = 0,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -141,6 +144,18 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
         onOpenBackupModal();
       },
     },
+    ...(onOpenInstallModal ? [{
+      id: 'install-pwa',
+      label: 'نصب برنامه روی گوشی (اندروید)',
+      description: 'نصب نسخه وب‌اپلیکیشن تمام‌صفحه و دسترسی آفلاین',
+      icon: Smartphone,
+      color: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25',
+      badge: 'نسخه موبایل',
+      onClick: () => {
+        setIsOpen(false);
+        onOpenInstallModal();
+      },
+    }] : []),
   ];
 
   return (

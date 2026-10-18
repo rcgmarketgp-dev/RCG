@@ -41,6 +41,8 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BroadcastNotificationToast } from './components/BroadcastNotificationToast';
 import { BroadcastCalendarView } from './components/BroadcastCalendarView';
 import { QuickActionMenu } from './components/QuickActionMenu';
+import { AndroidInstallModal } from './components/AndroidInstallModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 const STORAGE_KEY_COLUMNS = 'rcg_woodworking_columns_v2';
 
@@ -144,6 +146,7 @@ export default function App() {
   const [schedulingDevice, setSchedulingDevice] = useState<DeviceItem | null>(null);
   const [isSchedulesOverviewOpen, setIsSchedulesOverviewOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   // Due Broadcast Schedules Notification
   const [dueSchedules, setDueSchedules] = useState<{ device: DeviceItem; schedule: BroadcastSchedule }[]>([]);
@@ -622,6 +625,7 @@ export default function App() {
         onOpenBackupModal={() => setIsBackupModalOpen(true)}
         pendingSchedulesCount={pendingSchedulesCount}
         onOpenSchedulesList={() => setIsSchedulesOverviewOpen(true)}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
       />
 
       {/* Main Container */}
@@ -902,8 +906,18 @@ export default function App() {
           setAiCaptionDevice(null);
           setIsAICaptionOpen(true);
         }}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
         pendingSchedulesCount={pendingSchedulesCount}
       />
+
+      {/* Android & Mobile PWA Installation Modal */}
+      <AndroidInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
+
+      {/* Offline Status Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

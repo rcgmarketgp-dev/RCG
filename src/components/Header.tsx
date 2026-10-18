@@ -16,8 +16,10 @@ import {
   Building2,
   HardDrive,
   Bell,
-  Calendar
+  Calendar,
+  Smartphone
 } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   currentView: 'excel' | 'table' | 'showcase' | 'calendar';
@@ -37,6 +39,7 @@ interface HeaderProps {
   onOpenBackupModal?: () => void;
   pendingSchedulesCount?: number;
   onOpenSchedulesList?: () => void;
+  onOpenInstallModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -57,6 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenBackupModal,
   pendingSchedulesCount = 0,
   onOpenSchedulesList,
+  onOpenInstallModal,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-xs w-full max-w-full">
@@ -131,6 +135,16 @@ export const Header: React.FC<HeaderProps> = ({
                       {pendingSchedulesCount}
                     </span>
                   )}
+                </button>
+              )}
+
+              {onOpenInstallModal && (
+                <button
+                  onClick={onOpenInstallModal}
+                  title="نصب اپلیکیشن روی گوشی (اندروید)"
+                  className="w-8 h-8 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900 active:scale-95 transition-all shadow-2xs"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
                 </button>
               )}
 
@@ -317,6 +331,11 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </button>
+            )}
+
+            {/* PWA Install Button (Android / iOS / Mobile) */}
+            {onOpenInstallModal && (
+              <PWAInstallButton onOpenModal={onOpenInstallModal} />
             )}
 
             {/* Add New Machine button */}
