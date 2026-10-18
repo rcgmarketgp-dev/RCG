@@ -12,7 +12,8 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Send
+  Send,
+  Building2
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -29,6 +30,7 @@ interface HeaderProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onOpenAICaption?: () => void;
+  onOpenCompanyProfile?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   theme,
   onToggleTheme,
   onOpenAICaption,
+  onOpenCompanyProfile,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-xs w-full max-w-full">
@@ -84,6 +87,16 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-8 h-8 rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 flex items-center justify-center hover:bg-sky-100 dark:hover:bg-sky-900 active:scale-95 transition-all shadow-2xs"
                 >
                   <Send className="w-3.5 h-3.5 -rotate-12" />
+                </button>
+              )}
+
+              {onOpenCompanyProfile && (
+                <button
+                  onClick={onOpenCompanyProfile}
+                  title="پروفایل شرکت و امضای پیام‌ها (اطلاعات تماس، شعار، آیدی‌ها)"
+                  className="w-8 h-8 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900 active:scale-95 transition-all shadow-2xs"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
                 </button>
               )}
 
@@ -163,7 +176,9 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <TableProperties className="w-4 h-4 shrink-0" />
-              <span>جدول انبار ({totalDevicesCount})</span>
+              <span style={{ width: '70.8667px', height: '28px' }} className="inline-flex items-center justify-center truncate">
+                جدول انبار ({totalDevicesCount})
+              </span>
             </button>
             <button
               onClick={() => setCurrentView('showcase')}
@@ -174,12 +189,17 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <LayoutGrid className="w-4 h-4 shrink-0" />
-              <span>ویترین</span>
+              <span style={{ width: '48.05px' }} className="inline-flex items-center justify-center">
+                ویترین
+              </span>
             </button>
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-2">
+          <div 
+            style={{ width: '700px', height: '69px', maxWidth: '100%' }}
+            className="hidden md:flex items-center gap-2"
+          >
             {/* Direct Messenger Share Ad tool */}
             {onOpenAICaption && (
               <button
@@ -212,6 +232,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Google Drive & Sheets</span>
               {googleUser && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
             </button>
+
+            {/* Company Profile & Signature Button */}
+            {onOpenCompanyProfile && (
+              <button
+                onClick={onOpenCompanyProfile}
+                title="پروفایل و هویت سازمانی شرکت (شعار، اطلاعات تماس، آیدی‌های پیام‌رسان‌ها جهت درج در انتهای پیام)"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200"
+              >
+                <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>پروفایل شرکت</span>
+              </button>
+            )}
 
             {/* Add New Machine button */}
             <button
@@ -267,8 +299,9 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Theme Switcher Button: Rounded Square */}
             <button
               onClick={onToggleTheme}
+              style={{ width: '45px' }}
               title={theme === 'dark' ? 'تغییر به تم روشن (روز)' : 'تغییر به تم تاریک (شب)'}
-              className="flex items-center justify-center w-9 h-9 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 shadow-2xs group shrink-0"
+              className="flex items-center justify-center h-9 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 shadow-2xs group shrink-0"
               aria-label="تغییر تم"
             >
               {theme === 'dark' ? (

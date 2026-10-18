@@ -93,3 +93,26 @@ export interface AISpellingResult {
   corrections: AICorrectionItem[];
   rawOutput?: string;
 }
+
+export interface CompanyProfile {
+  companyName: string;
+  slogan: string;
+  phone1: string;
+  phone2?: string;
+  mobile: string;
+  address?: string;
+  website?: string;
+  telegramId?: string;
+  whatsappNumber?: string;
+  baleId?: string;
+  eitaaId?: string;
+  instagramId?: string;
+  rubikaId?: string;
+  customNote?: string;
+  includeSlogan: boolean;
+  includePhones: boolean;
+  includeSocials: boolean;
+  includeAddress: boolean;
+  includeCustomNote: boolean;
+  separatorStyle: 'divider' | 'dashes' | 'stars' | 'minimal';
+}

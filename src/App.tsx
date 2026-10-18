@@ -27,6 +27,7 @@ import { AICaptionModal } from './components/AICaptionModal';
 import { AIFixSpellModal } from './components/AIFixSpellModal';
 import { ExcelImportModal } from './components/ExcelImportModal';
 import { GoogleWorkspaceModal } from './components/GoogleWorkspaceModal';
+import { CompanyProfileModal } from './components/CompanyProfileModal';
 
 const STORAGE_KEY_DEVICES = 'rcg_woodworking_devices_v2';
 const STORAGE_KEY_COLUMNS = 'rcg_woodworking_columns_v2';
@@ -130,6 +131,7 @@ export default function App() {
 
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [isCompanyProfileOpen, setIsCompanyProfileOpen] = useState(false);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -447,10 +449,14 @@ export default function App() {
           setAiCaptionDevice(null);
           setIsAICaptionOpen(true);
         }}
+        onOpenCompanyProfile={() => setIsCompanyProfileOpen(true)}
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full max-w-full overflow-x-hidden">
+      <main 
+        style={{ width: '1400px', maxWidth: '100%', minHeight: '200px' }}
+        className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full overflow-x-hidden"
+      >
         {/* Top Analytics Bar */}
         <StatsOverview devices={devices} />
 
@@ -605,6 +611,15 @@ export default function App() {
         }}
         device={aiCaptionDevice}
         allDevices={devices}
+        onOpenCompanyProfile={() => setIsCompanyProfileOpen(true)}
+      />
+
+      <CompanyProfileModal
+        isOpen={isCompanyProfileOpen}
+        onClose={() => setIsCompanyProfileOpen(false)}
+        onProfileUpdated={(p) => {
+          showToast(`پروفایل و امضای «${p.companyName}» با موفقیت ذخیره شد.`);
+        }}
       />
 
       <AIFixSpellModal

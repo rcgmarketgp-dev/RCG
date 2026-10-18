@@ -57,8 +57,8 @@ const COLUMN_HEADERS = [
   { col: 'F', key: 'cashPercentage', label: 'نقد (%)', width: '90px' },
   { col: 'G', key: 'installmentPercentage', label: 'اقساط (%)', width: '90px' },
   { col: 'H', key: 'installmentMonths', label: 'ماه قسط', width: '80px' },
-  { col: 'I', key: 'warrantyMonths', label: 'گارانتی', width: '100px' },
-  { col: 'J', key: 'price', label: 'قیمت پایه (تومان)', width: '140px' },
+  { col: 'I', key: 'warrantyMonths', label: 'گارانتی', width: '94px' },
+  { col: 'J', key: 'price', label: 'قیمت پایه (تومان)', width: '132px' },
   { col: 'K', key: 'year', label: 'سال ساخت', width: '90px' },
   { col: 'L', key: 'location', label: 'انبار / مکان', width: '130px' },
   { col: 'M', key: 'specsText', label: 'مشخصات فنی دستگاه', width: '220px' },
@@ -416,7 +416,10 @@ export const ExcelGridEntry: React.FC<ExcelGridEntryProps> = ({
       </div>
 
       {/* Excel Formula / Cell Bar */}
-      <div className="px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-xs">
+      <div 
+        style={{ height: '53px' }}
+        className="px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-xs"
+      >
         {/* Cell coordinate badge */}
         <div className="px-2.5 py-1 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-mono font-bold text-zinc-600 dark:text-zinc-400 min-w-14 text-center shadow-2xs">
           {activeCell
@@ -453,7 +456,8 @@ export const ExcelGridEntry: React.FC<ExcelGridEntryProps> = ({
       <div
         ref={gridContainerRef}
         onPaste={handlePaste}
-        className="overflow-x-auto overflow-y-auto max-h-[520px] bg-white dark:bg-zinc-900 scrollbar-thin select-none"
+        style={{ height: '300px', width: '1365px', maxWidth: '100%' }}
+        className="overflow-x-auto overflow-y-auto bg-white dark:bg-zinc-900 scrollbar-thin select-none"
       >
         <table className="w-full text-right text-xs border-collapse">
           {/* Header Row with Column Letters (A, B, C...) + Persian Labels */}
@@ -467,7 +471,11 @@ export const ExcelGridEntry: React.FC<ExcelGridEntryProps> = ({
               {COLUMN_HEADERS.map((ch) => (
                 <th
                   key={ch.key}
-                  style={{ minWidth: ch.width }}
+                  style={{ 
+                    minWidth: ch.width, 
+                    width: ch.width,
+                    ...(ch.key === 'price' ? { height: '22.5px' } : {}) 
+                  }}
                   className="px-3 py-2 border-r border-zinc-200 dark:border-zinc-700 text-nowrap"
                 >
                   <div className="flex items-center justify-between gap-1">

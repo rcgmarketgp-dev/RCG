@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { DeviceItem, DeviceImage } from '../types/device';
+import { DeviceItem, DeviceImage, CompanyProfile } from '../types/device';
 import { generateAICaption } from '../lib/aiClient';
+import { 
+  getStoredCompanyProfile, 
+  appendCompanySignature, 
+  removeCompanySignature, 
+  formatCompanySignature, 
+  hasCompanySignature 
+} from '../lib/companyProfile';
 import { 
   shareToTelegram, 
   shareToWhatsApp, 
@@ -30,7 +37,8 @@ import {
   Eye,
   SlidersHorizontal,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  FileSignature
 } from 'lucide-react';
 
 interface AICaptionModalProps {
@@ -38,6 +46,7 @@ interface AICaptionModalProps {
   onClose: () => void;
   device: DeviceItem | null;
   allDevices?: DeviceItem[];
+  onOpenCompanyProfile?: () => void;
 }
 
 type MessengerPlatform = 'bale' | 'telegram' | 'eitaa' | 'whatsapp';
@@ -47,6 +56,7 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
   onClose,
   device,
   allDevices = [],
+  onOpenCompanyProfile,
 }) => {
   // Mode: Single Device vs Multi-Device Catalog
   const [mode, setMode] = useState<'single' | 'multi'>('single');
@@ -72,6 +82,27 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
 
   // Active view in modal: Preview vs Edit/Settings
   const [activeTab, setActiveTab] = useState<'preview' | 'editor'>('preview');
+
+  // Company Profile Integration
+  const [profile, setProfile] = useState<CompanyProfile>(getStoredCompanyProfile);
+  const [appendProfile, setAppendProfile] = useState<boolean>(true);
+  const [copiedProfileCard, setCopiedProfileCard] = useState<boolean>(false);
+
+  // Sync profile when window event fires or when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setProfile(getStoredCompanyProfile());
+    }
+    const handleProfileUpdate = (e: any) => {
+      if (e.detail) {
+        setProfile(e.detail);
+      } else {
+        setProfile(getStoredCompanyProfile());
+      }
+    };
+    window.addEventListener('rcg_profile_updated', handleProfileUpdate);
+    return () => window.removeEventListener('rcg_profile_updated', handleProfileUpdate);
+  }, [isOpen]);
 
   // Sync initial state when modal opens
   useEffect(() => {
@@ -124,14 +155,37 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
         devices: targetDevs.length > 1 ? targetDevs : undefined,
         platform,
         tone: currentTone,
+        companyProfile: appendProfile ? profile : undefined,
       });
-      setCaption(generated);
+
+      if (appendProfile && !hasCompanySignature(generated, profile)) {
+        setCaption(appendCompanySignature(generated, profile));
+      } else {
+        setCaption(generated);
+      }
     } catch (err: any) {
       console.error('Caption generation error:', err);
       setError(err.message || 'خطا در ارتباط با سرور هوش مصنوعی.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleToggleAppendProfile = () => {
+    const next = !appendProfile;
+    setAppendProfile(next);
+    if (next) {
+      setCaption((prev) => appendCompanySignature(prev, profile));
+    } else {
+      setCaption((prev) => removeCompanySignature(prev, profile));
+    }
+  };
+
+  const handleCopyCompanyCard = () => {
+    const card = formatCompanySignature(profile);
+    navigator.clipboard.writeText(card);
+    setCopiedProfileCard(true);
+    setTimeout(() => setCopiedProfileCard(false), 2000);
   };
 
   const handleToggleDevice = (devId: string) => {
@@ -312,8 +366,65 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
               }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>تنظیمات و متن کپشن</span>
+              <span>تنظیمات و ویرایش متن</span>
             </button>
+          </div>
+        </div>
+
+        {/* Company Profile Footer Integration Bar */}
+        <div className="px-4 py-2.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border-b border-blue-200/80 dark:border-blue-900/50 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-zinc-900 dark:text-white truncate">
+                  {profile.companyName}
+                </span>
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 hidden md:inline truncate max-w-sm">
+                  • {profile.slogan}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Toggle Append to Message */}
+            <button
+              onClick={handleToggleAppendProfile}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-2xs ${
+                appendProfile
+                  ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+              }`}
+              title="درج خودکار مشخصات، شعار و آیدی‌های شرکت در انتهای پیام دستگاه"
+            >
+              <Check className={`w-3.5 h-3.5 ${appendProfile ? 'opacity-100' : 'opacity-0'}`} />
+              <span>{appendProfile ? 'امضای شرکت فعال در انتهای پیام' : 'امضای شرکت غیرفعال'}</span>
+            </button>
+
+            {/* Copy Card button */}
+            <button
+              onClick={handleCopyCompanyCard}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition"
+              title="کپی متن اطلاعات تماس و شعار شرکت"
+            >
+              {copiedProfileCard ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-zinc-500" />}
+              <span>{copiedProfileCard ? 'کپی شد!' : 'کپی کارت شرکت'}</span>
+            </button>
+
+            {/* Open Profile Modal */}
+            {onOpenCompanyProfile && (
+              <button
+                onClick={onOpenCompanyProfile}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 font-bold transition"
+                title="ویرایش نام، شعار، تلفن‌ها و آیدی‌های پیام‌رسان‌ها"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>تنظیمات پروفایل</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -747,6 +858,39 @@ export const AICaptionModal: React.FC<AICaptionModalProps> = ({
                   placeholder="متن آگهی در اینجا ظاهر می‌شود..."
                 />
                 
+                {/* Signature Actions in Editor */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-2 p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/40 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1">
+                      <FileSignature className="w-3.5 h-3.5 text-blue-600" />
+                      امضای مشخصات شرکت:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCaption((prev) => appendCompanySignature(prev, profile))}
+                      className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 font-medium transition active:scale-95"
+                    >
+                      + افزودن به انتهای متن
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCaption((prev) => removeCompanySignature(prev, profile))}
+                      className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 font-medium transition active:scale-95"
+                    >
+                      حذف از انتهای متن
+                    </button>
+                  </div>
+                  {onOpenCompanyProfile && (
+                    <button
+                      type="button"
+                      onClick={onOpenCompanyProfile}
+                      className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                    >
+                      ویرایش شعار و شماره‌ها ↗
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-1.5 px-1">
                   <span>تعداد کاراکترها: {caption.length.toLocaleString('fa-IR')}</span>
                   <span>متن بلافاصله در پیش‌نمایش چت بروزرسانی می‌شود.</span>

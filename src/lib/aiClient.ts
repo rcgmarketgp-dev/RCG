@@ -1,10 +1,11 @@
-import { DeviceItem, AISpellingResult } from '../types/device';
+import { DeviceItem, AISpellingResult, CompanyProfile } from '../types/device';
 
 export interface GenerateCaptionParams {
   device?: Partial<DeviceItem>;
   devices?: Partial<DeviceItem>[];
   platform: 'bale' | 'telegram' | 'eitaa' | 'whatsapp' | 'instagram' | 'divar' | 'linkedin';
   tone: 'attractive' | 'technical' | 'urgent' | 'formal';
+  companyProfile?: CompanyProfile;
 }
 
 export async function generateAICaption(params: GenerateCaptionParams): Promise<string> {

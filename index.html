@@ -12,6 +12,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      // Suppress Vite HMR WebSocket connection errors in iframe/Cloud Run environment
+      window.addEventListener('error', function (e) {
+        if (
+          (e.message && (e.message.includes('WebSocket') || e.message.includes('vite') || e.message.includes('ModuleRunnerTransport'))) ||
+          (e.filename && e.filename.includes('@vite/client'))
+        ) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason && (e.reason.message || e.reason.stack || String(e.reason));
+        if (reason && (reason.includes('WebSocket') || reason.includes('@vite/client') || reason.includes('ModuleRunnerTransport'))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>

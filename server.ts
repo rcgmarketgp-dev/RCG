@@ -27,7 +27,7 @@ const ai = new GoogleGenAI({
 // Endpoint: Generate specialized social media & messenger captions (single or multi-device)
 app.post('/api/ai/generate-caption', async (req: Request, res: Response) => {
   try {
-    const { device, devices, platform = 'bale', tone = 'attractive' } = req.body;
+    const { device, devices, platform = 'bale', tone = 'attractive', companyProfile } = req.body;
 
     const targetList: any[] = Array.isArray(devices) && devices.length > 0
       ? devices
@@ -85,11 +85,26 @@ ${targetList.map((d, idx) => `
 `;
     }
 
+    let companyProfileText = '';
+    if (companyProfile) {
+      companyProfileText = `
+اطلاعات تماس و پروفایل شرکت جهت درج در انتهای پیام:
+- نام شرکت / بازرگانی: ${companyProfile.companyName || ''}
+${companyProfile.includeSlogan && companyProfile.slogan ? `- شعار سازمانی: ${companyProfile.slogan}` : ''}
+${companyProfile.includePhones ? `- شماره‌های تماس: همراه (${companyProfile.mobile || '-'}) | ثابت (${companyProfile.phone1 || '-'}) | پشتیبانی (${companyProfile.phone2 || '-'})` : ''}
+${companyProfile.includeSocials ? `- آیدی‌ها و پیام‌رسان‌ها: تلگرام: ${companyProfile.telegramId || '-'} | بله: ${companyProfile.baleId || '-'} | ایتا: ${companyProfile.eitaaId || '-'} | واتساپ: ${companyProfile.whatsappNumber || '-'} | اینستاگرام: ${companyProfile.instagramId || '-'}` : ''}
+${companyProfile.includeAddress && companyProfile.address ? `- آدرس نمایشگاه و کارگاه: ${companyProfile.address}` : ''}
+${companyProfile.includeCustomNote && companyProfile.customNote ? `- یادداشت یا دعوت به اقدام اختصاصی: ${companyProfile.customNote}` : ''}
+`;
+    }
+
     const prompt = `
 شما یک مدیر بازاریابی و فروش ارشد ماشین‌آلات و ابزارآلات صنایع چوب، ام‌دی‌اف، نجاری و کابینت‌سازی در ایران هستید.
 لطفاً برای اطلاعات ماشین‌آلات زیر یک متن آگهی / کپشن فروش فوق‌العاده برای ارسال به مشتری یا انتشار در پیام‌رسان‌های بله، تلگرام، ایتا و واتساپ بنویسید:
 
 ${itemsDescription}
+
+${companyProfileText}
 
 پیام‌رسان / پلتفرم مقصد: ${platform} (${platformGuides[platform] || platformGuides.bale})
 لحن متن: ${tone} (${toneGuides[tone] || toneGuides.attractive})
@@ -98,8 +113,8 @@ ${itemsDescription}
 دستورالعمل‌های خروجی:
 ۱. خروجی باید کاملاً به زبان فارسی روان، اصیل و جذاب با اصطلاحات تخصصی دقیق صنعت چوب (مانند ایستگاه‌ها، پیش‌فرز، ریل واگن، خط‌زن، اسپیندل، زاویه‌خور، پی‌ال‌سی و...) باشد.
 ۲. شرایط پرداخت نقد و اقساط و مدت گارانتی به شکل برجسته و خوانا با ایموجی‌های منظم ذکر شوند.
-۳. هشتگ‌های تخصصی صنعت چوب مانند #صنایع_چوب #فروش_اقساطی_ماشین_آلات #چوب_و_ام_دی_اف و نام دستگاه‌ها در انتها درج شود.
-۴. بخش دعوت به اقدام (تماس جهت استعلام و بازدید حضوری در کارگاه/نمایشگاه) قرار گیرد.
+۳. اطلاعات تماس و پروفایل شرکت در صورت وجود، دقیقاً و به شکلی منظم و حرفه‌ای با خط جداکننده (مانند ━━━━━━━━━━━━━━━━━━━━) در انتهای پیام قرار گیرند و شماره‌ها و آیدی‌ها بدون دستکاری درج شوند.
+۴. هشتگ‌های تخصصی صنعت چوب مانند #صنایع_چوب #فروش_اقساطی_ماشین_آلات #چوب_و_ام_دی_اف و نام دستگاه‌ها در انتها درج شود.
 ۵. فقط خود متن نهایی کپشن را خروجی دهید بدون توضیحات اضافه در ابتدا یا انتها.
 `;
 
@@ -188,7 +203,7 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR === 'true' ? false : { server },
+        hmr: false,
       },
       appType: 'spa',
     });
